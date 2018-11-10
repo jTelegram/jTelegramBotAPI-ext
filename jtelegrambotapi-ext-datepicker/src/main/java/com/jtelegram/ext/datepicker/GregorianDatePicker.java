@@ -168,7 +168,7 @@ public class GregorianDatePicker implements DatePicker {
             if (current.isAfter(lastDayOfMonth)) {
                 // if month ends on Sunday, but the last day is a Friday, pad in 2 days
                 paddingDays = weekStart + daysInWeek - lastDayOfMonth.getDayOfWeek().getValue() - 1;
-                if (paddingDays > 7) paddingDays -= 7;
+                if (paddingDays >= 7) paddingDays -= 7;
                 while (paddingDays > 0) {
                     rowBuilder.button(InlineKeyboardButton.builder().label(" ").callbackData(" ").build());
                     --paddingDays;
