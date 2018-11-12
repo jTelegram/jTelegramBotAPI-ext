@@ -1,8 +1,8 @@
 # jTelegram Extensions: Date Picker
 
-The Date Picker component allows users to easily select a date.
+The Date Picker component allows users to easily select dates.
 
-It generates `InlineKeyboardMarkup` instances to represent calendars.
+It uses menus and instances of `InlineKeyboardMarkup` to represent calendars.
 
 It is fully localisable, using instances of `java.util.Locale`. Day and month names are set to reflect the chosen locale.
 
@@ -19,40 +19,53 @@ The second shows a Swedish calendar – note the week starting on Monday, as is 
 
 ## Documentation
 
-### Registration
+### High-level: creating calendar menus
 
-You should register your bot using `DatePickerReplyMarkup#register(TelegramBot, BiConsumer<CallbackQueryEvent, LocalDate>)`.
+[A full example is available here.](https://gist.github.com/nickrobson/880a1306ffeacea61c14c7a47153a070)
 
-The first parameter is the bot instance.
+With integration with `jtelegrambotapi-menus`, you can use the Menus API to generate calendars.
 
-The second parameter is a callback which will be called with two arguments:
-* `event` – the `CallbackQueryEvent` that caused the callback, containing the chat and user
-* `date` – a `LocalDate` instance corresponding to the date the user clicked on
+This is done through the [`DatePickerMenu`](https://github.com/jTelegram/jTelegramBotAPI-ext/blob/master/jtelegrambotapi-ext-datepicker/src/main/java/com/jtelegram/ext/datepicker/menu/DatePickerMenu.java) class and its builder.
 
-Example usage, printing out dates as users click on them:
+The only required methods are `DatePickerMenuBuilder#bot`, `DatePickerMenuBuilder#datePicker`, and `DatePickerMenuBuilder#datePickerOptions`.
+
+You can choose which days are highlighted on the calendar through methods in the [`DatePickerOptions`](https://github.com/jTelegram/jTelegramBotAPI-ext/blob/master/jtelegrambotapi-ext-datepicker/src/main/java/com/jtelegram/ext/datepicker/picker/DatePickerOptions.java) class and its builder.
+
+You can restrict who can select months (via the top row of buttons) using `DatePickerMenuBuilder#monthSelectionPredicate`.
+
+You can restrict who can select days (via the rows representing the calendar) using `DatePickerMenuBuilder#dateSelectionPredicate`.
+
+You can get callbacks for when days are clicked using `DatePickerMenuBuilder#dateSelectionConsumer`.
+
+You can optionally choose the starting date/month of the menu using `DatePickerMenuBuilder#selectedDate` – by default it is set to `LocalDate.now()`.
+
+You can optionally set the message text of the message the menu is attached to using `DatePickerMenuBuilder#messageSupplier` – by default the message contents will remain unchanged.
+
+You can optionally specify an error handler using `DatePickerMenuBuilder#errorHandler`.
+
+### Low-level: creating calendar markups
+
+You can create a DatePicker instance for a specific locale using `DatePickerExtension#forLocale(Locale)`.
+
+The locale provided dictates day and month names, and which day of the week should be used as the first day of the week. You should use `Locale.ROOT` if you are not targeting one country/culture in particular. Alternatively, you can make the calendar use a user's locale, using `Locale.forLanguageTag(user.getLanguageCode())`.
+
+Example usage:
+* creates a calendar with the American locale (which sets the day and month names and which day the week starts on)
+* starts showing today's month (using `LocalDate.now()`)
+* no dates are highlighted
 
 ```java
-DatePickerReplyMarkup.register(bot, (event, date) -> {
-    System.out.format(
-            "@%s clicked %s\n",
-            event.getQuery().getFrom().getUsername(),
-            date.toString()
-    );
-});
+DatePicker datePicker = DatePickerExtension.forLocale(Locale.US);
+DatePickerKeyboard keyboard = datePicker.toKeyboard(LocalDate.now());
+InlineKeyboardMarkup keyboardMarkup = keyboard.toInline();
 ```
 
-### Generating calendars
-
-You can generate calendars using `DatePickerReplyMarkup#forLocale(Locale, LocalDate)`.
-
-The first parameter is the locale to use. This dictates day and month names, and which day of the week should be used as the first day of the week. You should use `Locale.ROOT` if you are not targeting one country/culture in particular. Alternatively, you can make the calendar use a user's locale, using `Locale.forLanguageTag(user.getLanguageCode())`.
-
-The second parameter is a date inside the month that will be displayed first. It is recommended to use `LocalDate.now()`, as this will start from the current month.
-
-This methods returns an `InlineKeyboardMarkup` instance, which can then be used in sending or editing messages.
-
-Example usage, creating a calendar with the American locale (which sets the day and month names and which day the week starts on) and today's date to begin showing the month of:
+Example usage: same as above, but today's date is highlighted (has a • next to it)
 
 ```java
-DatePickerReplyMarkup.forLocale(Locale.US, LocalDate.now())
+LocalDate today = LocalDate.now();
+DatePicker datePicker = DatePickerExtension.forLocale(Locale.US);
+DatePickerOptions datePickerOptions = DatePickerOptions.builder().dateHighlightedPredicate(today::isEqual).build();
+DatePickerKeyboard keyboard = datePicker.toKeyboard(today, datePickerOptions);
+InlineKeyboardMarkup keyboardMarkup = keyboard.toInline();
 ```
